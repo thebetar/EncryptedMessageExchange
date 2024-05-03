@@ -10,7 +10,7 @@ To run this project some tools are needed which are:
 -   npm
 -   docker
 
-To run this project follow the steps below:
+To run this project follow the steps below (with docker compose):
 
 -   Navigate to the client folder using `cd client`
 -   Install all npm dependencies using `npm install`
@@ -19,3 +19,14 @@ To run this project follow the steps below:
 -   Build the docker containers using `docker compose build`
 -   Start the docker containers using `docker compose up -d`
 -   Marvel at the wonders of this applications
+
+To run this project in development mode follow the following steps
+
+-   Start the redis docker container using `docker run --publish=6379:6379 --name=ressilient-hosting-db -d redis`
+-   Navigate to the client folder using `cd client`
+-   Install all npm dependencies using `npm install`
+-   Run the client using `npm run dev`
+-   Open a new terminal
+-   Navigate back to the server using `cd server`
+-   Install all npm dependencies using `npm install`
+-   Run the client using `npm run dev`

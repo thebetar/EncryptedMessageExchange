@@ -1,94 +1,215 @@
 const express = require('express');
-const { createServer } = require('http');
 const cors = require('cors');
+const { createServer } = require('http');
 const { Server } = require('socket.io');
+
 const getRedisClient = require('./redis');
+const { generateKeys, encryptData, decryptData } = require('./encryption');
 
-const app = express();
+require('dotenv').config();
 
-app.use(cors());
+// Toggle for resetting chat history
+const RESET = true;
 
-const server = createServer(app);
-
-const io = new Server(server);
+// Used for end to end encryption
+const keys = {
+	publicKey: '',
+	privateKey: '',
+};
 
 let redisClient;
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const server = createServer(app);
 
 app.get('/test', (req, res) => {
 	res.send('Server is running! 🚀');
 });
 
-let clients = 0;
-let clientsIdMap = {};
+const API_KEY_PASSWORD = process.env.API_KEY_PASSWORD || 'api-password';
+const API_KEY = process.env.API_KEY || '194b01740bd8ae752ed224917feb21e98955c685a63a50302ea5b42fa2a0528d';
 
-const RESET = false;
+app.post('/login', (req, res) => {
+	const { password } = req.body;
 
-io.on('connection', async socket => {
-	clients++;
-
-	sendUpdate();
-
-	if (RESET) {
-		await redisClient.set('messages', JSON.stringify([]));
-		await redisClient.set('clients', JSON.stringify([]));
+	if (password !== API_KEY_PASSWORD) {
+		res.status(401).send('Unauthorized');
+		return;
 	}
+
+	res.send({
+		apiKey: API_KEY,
+	});
+});
+
+// Start socket.io server
+const io = new Server(server);
+
+// Keep track of clients
+const clientsIdMap = {};
+
+// Handle socket connections
+io.on('connection', async socket => {
+	// Check if user has API_KEY
+	if (!socket.handshake.auth.api_key || socket.handshake.auth.api_key !== API_KEY) {
+		socket.disconnect();
+		return;
+	}
+
+	// Set new user
+	const username = socket.handshake.query.username;
+
+	// Handle new user
+	await newUser(socket.id, username);
+
+	// Send public key to client so they can encrypt messages
+	socket.emit('keys', {
+		publicKey: keys.publicKey,
+	});
 
 	console.log('A user connected! 🎉');
 
-	socket.on('new-user', async username => {
-		const clients = JSON.parse((await redisClient.get('clients')) || '[]');
-
-		const clientsSet = new Set(clients);
-		clientsSet.add(username);
-
-		await redisClient.set('clients', JSON.stringify(Array.from(clientsSet)));
-
-		clientsIdMap[socket.id] = username;
-
-		sendUpdate();
-	});
-
-	socket.on('chat-message', async msg => {
+	// Handle chat messages
+	socket.on('chat-message', async data => {
+		// Get all messages
 		const messages = JSON.parse((await redisClient.get('messages')) || '[]');
 
+		// Decrypt message
+		const message = decryptData(data, keys.privateKey);
+
+		// Add new message
 		messages.push({
-			client: clientsIdMap[socket.id],
-			message: msg,
+			client: socket.id,
+			message: message,
 			timestamp: new Date().toISOString(),
 		});
 
+		// Save messages to redis
 		await redisClient.set('messages', JSON.stringify(messages));
 
-		sendUpdate();
+		// Send update to all users
+		sendUpdate(socket.id);
 	});
 
+	// Handle disconnect
 	socket.on('disconnect', () => {
-		clients--;
-
+		// Remove client from map
 		if (clientsIdMap[socket.id]) {
 			delete clientsIdMap[socket.id];
 		}
 
-		sendUpdate();
+		// Send update to all users
+		sendUpdate(socket.id);
 
 		console.log('A user disconnected! 😢');
 	});
+
+	async function newUser(id, username) {
+		// Create new user object
+		const newClient = {
+			id,
+			username,
+		};
+
+		// Get clients from redis
+		const clients = JSON.parse((await redisClient.get('clients')) || '[]');
+
+		// If client does not exist, add them
+		if (!clients.some(client => id === client.id)) {
+			// If username already exists remove it
+			const index = clients.findIndex(client => client.username === username);
+
+			if (index !== -1) {
+				// Remove and get old client
+				const [oldClient] = clients.splice(index, 1);
+
+				// And map all messages from this user to the new user
+				const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+
+				for (let i = 0; i < messages.length; i++) {
+					if (messages[i].client === oldClient.id) {
+						messages[i].client = newClient.id;
+					}
+				}
+
+				// Save messages to redis
+				await redisClient.set('messages', JSON.stringify(messages));
+			}
+
+			// Add new client
+			clients.push(newClient);
+
+			// Save clients to redis
+			await redisClient.set('clients', JSON.stringify(Array.from(clients)));
+		}
+
+		// If client does not exist in map, add them
+		if (!clientsIdMap[id]) {
+			// Keep track of clients
+			clientsIdMap[id] = newClient;
+		}
+
+		// Send update to all clients
+		sendUpdate(id);
+	}
+
+	// Send update to all clients
+	async function sendUpdate() {
+		// Get all client data and messages
+		const clients = JSON.parse((await redisClient.get('clients')) || '[]');
+		const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+
+		// Send data to client
+		const data = {
+			onlineClients: Object.values(clientsIdMap),
+			clients: clients,
+			messages,
+		};
+
+		const sockets = io.sockets.sockets;
+
+		for (let [id, socket] of sockets) {
+			// The only way to deep copy an object in javascript (needed for encryption)
+			const dataCopy = JSON.parse(JSON.stringify(data));
+
+			// Encrypt message
+			for (let i = 0; i < dataCopy.messages.length; i++) {
+				dataCopy.messages[i].message = await encryptData(
+					dataCopy.messages[i].message,
+					socket.handshake.auth.public_key,
+				);
+			}
+
+			// Send data to client
+			socket.emit('socket-update', dataCopy);
+		}
+	}
 });
 
-async function sendUpdate() {
-	const clients = JSON.parse((await redisClient.get('clients')) || '[]');
-	const messages = JSON.parse((await redisClient.get('messages')) || '[]');
-
-	io.emit('socket-update', {
-		clients,
-		messages,
-	});
-}
-
+// Start server
 const port = process.env.PORT || 3000;
 
 server.listen(port, async () => {
 	console.log(`Running on port ${port} 🚀`);
 
+	// Generate keys
+	const { publicKey, privateKey } = generateKeys();
+	keys.publicKey = publicKey;
+	keys.privateKey = privateKey;
+
+	console.log('Keys generated! 🔑');
+
+	// Connect to redis
 	redisClient = await getRedisClient();
+
+	// Reset chat history
+	if (RESET) {
+		await redisClient.set('messages', JSON.stringify([]));
+		await redisClient.set('clients', JSON.stringify([]));
+	}
+
+	console.log('Redis connected! 🚀');
 });
