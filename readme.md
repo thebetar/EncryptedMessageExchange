@@ -30,3 +30,10 @@ To run this project in development mode follow the following steps
 -   Navigate back to the server using `cd server`
 -   Install all npm dependencies using `npm install`
 -   Run the client using `npm run dev`
+
+## Todos
+
+-   [ ] Check if all requests are correctly send to all replicas (from different users)
+-   [ ] Check if keys are correctly stored and shared
+-   [ ] Check if encryption and decryption works successfully over the replications
+-   [ ] Check if websockets work well over replication
