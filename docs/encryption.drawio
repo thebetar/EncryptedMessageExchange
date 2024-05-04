@@ -1,0 +1,42 @@
+<mxfile host="app.diagrams.net" modified="2024-05-03T14:27:28.636Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" etag="c5LbP8CPfSQiZMhfhTZM" version="24.3.1" type="device">
+  <diagram name="Page-1" id="Oyuk0QDx8zXoKhrhCyjH">
+    <mxGraphModel dx="1368" dy="793" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-1" value="Client" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="160" y="160" width="80" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-2" value="Server" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="400" y="160" width="80" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-4" value="Generates public and private key using RSA" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="137.5" y="290" width="125" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-5" value="Generates public and private key using RSA" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="377.5" y="290" width="125" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-6" value="Sends client public key" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=37.5;entryPerimeter=0;exitX=1;exitY=0;exitDx=0;exitDy=37.5;exitPerimeter=0;dashed=1;" edge="1" parent="1" source="mkCGRqQg4JkN3Ym4LzXm-1" target="mkCGRqQg4JkN3Ym4LzXm-2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-7" value="Sends server public key" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0;entryDx=0;entryDy=82.5;entryPerimeter=0;exitX=0;exitY=0;exitDx=0;exitDy=82.5;exitPerimeter=0;dashed=1;" edge="1" parent="1" source="mkCGRqQg4JkN3Ym4LzXm-2" target="mkCGRqQg4JkN3Ym4LzXm-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-8" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Uses client public key to encrypt data sent to client&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="170" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-9" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Uses server private key to decrypt data sent from client&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="240" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-10" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Uses server public key to encrypt data sent to server&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="170" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="mkCGRqQg4JkN3Ym4LzXm-11" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;Uses client private key to decrypt data sent from server&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="240" width="140" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
