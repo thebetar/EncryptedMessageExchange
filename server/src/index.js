@@ -25,8 +25,14 @@ app.use(express.json());
 
 const server = createServer(app);
 
+const HOST_NAME = process.env.HOSTNAME || 'Server';
+
+app.get('/server-name', (req, res) => {
+	res.status(200).send(HOST_NAME);
+});
+
 app.get('/test', (req, res) => {
-	res.send('Server is running! 🚀');
+	res.status(200).send('Server is running! 🚀');
 });
 
 const API_KEY_PASSWORD = process.env.API_KEY_PASSWORD || 'api-password';
@@ -40,16 +46,13 @@ app.post('/login', (req, res) => {
 		return;
 	}
 
-	res.send({
+	res.status(200).send({
 		apiKey: API_KEY,
 	});
 });
 
 // Start socket.io server
 const io = new Server(server);
-
-// Keep track of clients
-const clientsIdMap = {};
 
 // Handle socket connections
 io.on('connection', async socket => {
@@ -95,11 +98,20 @@ io.on('connection', async socket => {
 	});
 
 	// Handle disconnect
-	socket.on('disconnect', () => {
-		// Remove client from map
-		if (clientsIdMap[socket.id]) {
-			delete clientsIdMap[socket.id];
+	socket.on('disconnect', async () => {
+		// Get clients from redis
+		const clientsStr = (await redisClient.get('clients')) || '[]';
+		const clients = JSON.parse(clientsStr);
+
+		// Set user offline
+		const index = clients.findIndex(client => client.id === socket.id);
+
+		if (index !== -1) {
+			clients[index].online = false;
 		}
+
+		// Save clients to redis
+		redisClient.set('clients', JSON.stringify(clients));
 
 		// Send update to all users
 		sendUpdate(socket.id);
@@ -112,6 +124,7 @@ io.on('connection', async socket => {
 		const newClient = {
 			id,
 			username,
+			online: true,
 		};
 
 		// Get clients from redis
@@ -146,12 +159,6 @@ io.on('connection', async socket => {
 			await redisClient.set('clients', JSON.stringify(Array.from(clients)));
 		}
 
-		// If client does not exist in map, add them
-		if (!clientsIdMap[id]) {
-			// Keep track of clients
-			clientsIdMap[id] = newClient;
-		}
-
 		// Send update to all clients
 		sendUpdate(id);
 	}
@@ -164,7 +171,6 @@ io.on('connection', async socket => {
 
 		// Send data to client
 		const data = {
-			onlineClients: Object.values(clientsIdMap),
 			clients: clients,
 			messages,
 		};
@@ -211,5 +217,5 @@ server.listen(port, async () => {
 		await redisClient.set('clients', JSON.stringify([]));
 	}
 
-	console.log('Redis connected! 🚀');
+	console.log('Redis connected! 💾');
 });

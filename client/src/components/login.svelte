@@ -36,7 +36,7 @@
 </script>
 
 <div class="fixed top-0 left-0 bg-black opacity-80 w-screen h-screen flex justify-center items-center p-4">
-    <div class="md:w-[300px] w-full p-4 bg-white flex flex-col gap-y-1 rounded-md">
+    <div class="md:w-[300px] w-full p-4 bg-white flex flex-col gap-y-1 rounded-md text-zinc-900">
         <h1 class="text-2xl">
             Login
         </h1>

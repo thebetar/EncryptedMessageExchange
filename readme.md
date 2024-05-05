@@ -33,7 +33,10 @@ To run this project in development mode follow the following steps
 
 ## Todos
 
+-   [ ] Improve frontend
 -   [ ] Check if all requests are correctly send to all replicas (from different users)
 -   [ ] Check if keys are correctly stored and shared
 -   [ ] Check if encryption and decryption works successfully over the replications
 -   [ ] Check if websockets work well over replication
+-   [ ] Check if update of websocket is send over all replications
+-   [ ] Run containers on different devices
