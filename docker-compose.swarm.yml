@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+    # Different servers because replicas do not work well with nginx
+    express-1:
+        image: message-exchange-server
+        deploy:
+            restart_policy:
+                condition: on-failure
+        networks:
+            - frontend-network
+            - backend-network
+        depends_on:
+            - redis
+        environment:
+            - PORT=3000
+            - REDIS_HOST=redis-container
+    express-2:
+        image: message-exchange-server
+        deploy:
+            restart_policy:
+                condition: on-failure
+        networks:
+            - frontend-network
+            - backend-network
+        depends_on:
+            - redis
+        environment:
+            - PORT=3000
+            - REDIS_HOST=redis-container
+    express-3:
+        image: message-exchange-server
+        deploy:
+            restart_policy:
+                condition: on-failure
+        networks:
+            - frontend-network
+            - backend-network
+        depends_on:
+            - redis
+        environment:
+            - PORT=3000
+            - REDIS_HOST=redis-container
+    nginx:
+        container_name: nginx-container
+        image: message-exchange-proxy
+        ports:
+            - '8080:80'
+        networks:
+            - frontend-network
+        depends_on:
+            - express-1
+            - express-2
+            - express-3
+        volumes:
+            - ./client/build:/usr/share/nginx/html
+    redis:
+        container_name: redis-container
+        image: redis
+        deploy:
+            # replicas: 2
+            restart_policy:
+                condition: on-failure
+        networks:
+            - backend-network
+        volumes:
+            - ./database/data:/data
+networks:
+    frontend-network:
+        driver: overlay
+    backend-network:
+        driver: overlay

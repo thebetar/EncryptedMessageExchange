@@ -31,9 +31,14 @@ To run this project in development mode follow the following steps
 -   Install all npm dependencies using `npm install`
 -   Run the client using `npm run dev`
 
+To run in distributed mode the container have to be built separately since the image have to be send to the systems in the swarm and the files are not shared.
+To do this run
+
+-   `docker build . -t message-exchange-server` in the `server` folder
+-   `docker build . -t message-exchange-proxy` in the `proxy` folder
+
 ## Todos
 
--   [ ] Improve frontend
 -   [ ] Check if all requests are correctly send to all replicas (from different users)
 -   [ ] Check if keys are correctly stored and shared
 -   [ ] Check if encryption and decryption works successfully over the replications

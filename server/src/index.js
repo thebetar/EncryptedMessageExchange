@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 
@@ -25,7 +26,7 @@ app.use(express.json());
 
 const server = createServer(app);
 
-const HOST_NAME = process.env.HOSTNAME || 'Server';
+const HOST_NAME = process.env.HOST_NAME || crypto.randomBytes(20).toString('hex');
 
 app.get('/server-name', (req, res) => {
 	res.status(200).send(HOST_NAME);
@@ -33,6 +34,11 @@ app.get('/server-name', (req, res) => {
 
 app.get('/test', (req, res) => {
 	res.status(200).send('Server is running! 🚀');
+});
+
+app.get('/kill', (req, res) => {
+	res.status(200).send('Server is shutting down! 🚀');
+	process.exit(0);
 });
 
 const API_KEY_PASSWORD = process.env.API_KEY_PASSWORD || 'api-password';
