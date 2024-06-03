@@ -36,6 +36,26 @@ app.get('/test', (req, res) => {
 	res.status(200).send('Server is running! 🚀');
 });
 
+app.get('/messages', async (req, res) => {
+	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+		res.status(401).send('Unauthorized');
+		return;
+	}
+
+	const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+	res.status(200).send(messages);
+});
+
+app.get('/users', async (req, res) => {
+	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+		res.status(401).send('Unauthorized');
+		return;
+	}
+
+	const clients = JSON.parse((await redisClient.get('clients')) || '[]');
+	res.status(200).send(clients);
+});
+
 app.get('/kill', (req, res) => {
 	res.status(200).send('Server is shutting down! 🚀');
 	process.exit(0);
@@ -72,7 +92,7 @@ io.on('connection', async socket => {
 	const username = socket.handshake.query.username;
 
 	// Handle new user
-	await newUser(socket.id, username);
+	await newUser(socket.id, username, socket.handshake.auth.public_key);
 
 	// Send public key to client so they can encrypt messages
 	socket.emit('keys', {
@@ -125,45 +145,39 @@ io.on('connection', async socket => {
 		console.log('A user disconnected! 😢');
 	});
 
-	async function newUser(id, username) {
+	async function newUser(id, username, publicKey) {
 		// Create new user object
 		const newClient = {
 			id,
 			username,
+			publicKey,
 			online: true,
 		};
 
 		// Get clients from redis
-		const clients = JSON.parse((await redisClient.get('clients')) || '[]');
+		let clients = JSON.parse((await redisClient.get('clients')) || '[]');
+		let messages = JSON.parse((await redisClient.get('messages')) || '[]');
 
-		// If client does not exist, add them
-		if (!clients.some(client => id === client.id)) {
-			// If username already exists remove it
-			const index = clients.findIndex(client => client.username === username);
-
-			if (index !== -1) {
-				// Remove and get old client
-				const [oldClient] = clients.splice(index, 1);
-
-				// And map all messages from this user to the new user
-				const messages = JSON.parse((await redisClient.get('messages')) || '[]');
-
-				for (let i = 0; i < messages.length; i++) {
-					if (messages[i].client === oldClient.id) {
-						messages[i].client = newClient.id;
-					}
-				}
-
-				// Save messages to redis
-				await redisClient.set('messages', JSON.stringify(messages));
-			}
-
-			// Add new client
-			clients.push(newClient);
-
-			// Save clients to redis
-			await redisClient.set('clients', JSON.stringify(Array.from(clients)));
+		// Check if id exists
+		if (clients.some(client => client.id === id)) {
+			clients = clients.filter(client => client.id !== id);
 		}
+
+		// Check if username exists
+		if (clients.some(client => client.username === username)) {
+			const oldClient = clients.find(client => client.username === username);
+			clients = clients.filter(client => client.username !== username);
+
+			for (let message of messages.filter(message => message.client === oldClient.id)) {
+				message.client = id;
+			}
+		}
+
+		// Add new client
+		clients.push(newClient);
+
+		// Save clients to redis
+		await redisClient.set('clients', JSON.stringify(Array.from(clients)));
 
 		// Send update to all clients
 		sendUpdate(id);
@@ -184,15 +198,15 @@ io.on('connection', async socket => {
 		const sockets = io.sockets.sockets;
 
 		for (let [id, socket] of sockets) {
+			// Get public key of client
+			const publicKey = clients.find(client => client.id === id)?.publicKey;
+
 			// The only way to deep copy an object in javascript (needed for encryption)
 			const dataCopy = JSON.parse(JSON.stringify(data));
 
 			// Encrypt message
 			for (let i = 0; i < dataCopy.messages.length; i++) {
-				dataCopy.messages[i].message = await encryptData(
-					dataCopy.messages[i].message,
-					socket.handshake.auth.public_key,
-				);
+				dataCopy.messages[i].message = await encryptData(dataCopy.messages[i].message, publicKey);
 			}
 
 			// Send data to client

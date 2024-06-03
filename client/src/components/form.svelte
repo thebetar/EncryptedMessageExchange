@@ -32,7 +32,7 @@
         <input id="chat-message" name="message" type="text" class="border border-white bg-zinc-900 rounded-lg p-2 w-full" placeholder="Enter your message" />
     </div>
 
-    <button class="border border-white rounded-lg p-2 w-full hover:bg-zinc-100 transition-colors active:bg-zinc-700">
+    <button class="border border-white rounded-lg p-2 w-full hover:bg-zinc-700 transition-colors active:bg-zinc-700">
         Send
     </button>
 </form>
