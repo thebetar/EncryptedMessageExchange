@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "(gdb) 启动",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceRoot}",
+            "externalConsole": true,
+            "environment": [],
+            "MIMode": "gdb",
+            "miDebuggerPath": "",
+            "miDebuggerServerAddress": "",
+            "setupCommands": [
+                {
+                    "description": "endlian little",
+                    "text": "set endian little",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "target remote 50.50.1.95:50000",
+                    "description": "connect to target",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "monitor reset",
+                    "text": "monitor reset",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "monitor halt",
+                    "text": "monitor halt",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "file",
+                    "text": "-file-exec-and-symbols \"\"",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "load file",
+                    "text": "load",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "break main",
+                    "text": "break main",
+                    "ignoreFailures": false
+                }
+            ],
+            "targetArchitecture": "mips"
+        }
+    ]
+}

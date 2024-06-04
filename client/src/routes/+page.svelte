@@ -1,3 +1,4 @@
+
 <script>
     import moment from 'moment';
     import { onMount } from 'svelte'
@@ -84,11 +85,10 @@
             }
 
             // Set data to client
+
             messages = data.messages;
             totalUsers = data.clients
             onlineUsers = data.onlineClients;
-
-            messages.reverse();
         });
 
         window.addEventListener('beforeunload', () => {
@@ -120,56 +120,51 @@
     }
 </script>
 
-<div class="flex flex-col items-center md:gap-y-3 gap-y-2">
-    {#if loginModal}
-        <LoginModal />
-    {:else}
-        <div class="md:text-4xl text-xl font-semibold">
-            Encrypted exchange service
-        </div>
-
-        <form class="md:w-[600px] w-full flex flex-col gap-y-2" on:submit={sendMessage}>
-            <div>
-                <label for="message" class="md:text-lg text-base">
-                    Message
-                </label>
-        
-                <input id="chat-message" name="message" type="text" class="border border-black rounded-lg p-2 w-full" placeholder="Enter your message" />
-            </div>
-        
-            <button class="border border-black rounded-lg p-2 w-full hover:bg-zinc-100 transition-colors">
-                Send
-            </button>
-        </form>
-        
-        <div class="flex flex-col gap-y-1 items-center">
-            <div class="md:text-lg text-base">
-                Online users: {onlineUsers.length}
-            </div>
-        
-            <div class="md:text-sm text-xs">
-                Total users: {totalUsers.length}
-            </div>
-        </div>
-
-        <div class="border border-black rounded-lg md:w-[600px] w-full p-2">
-            {#if messages.length === 0}
-                <div class="p-2">
-                    No messages yet
-                </div>
-            {:else}
-                {#each messages as message, index}
-                    <div class="flex justify-between border-b-zinc-400" class:border-b={index + 1 !== messages.length}>
-                        <div class="py-2 leading-5 text-sm">
-                            <span class="font-semibold">{message.client}</span>: {message.message}
-                        </div>
-                        <div class="text-xs underline min-w-[112px] h-9 flex items-center justify-end">
-                            {moment(message.timestamp).format('HH:mm DD-MM-YYYY')}
-                        </div>
+<div class="flex flex-col items-center justify-center min-h-screen">
+    <div class="fixed top-0 w-full bg-red-100 px-5 py-3 shadow-md z-10">
+        <div class="text-xl font-semibold">Encrypted Message System</div>
+        <div class="text-sm">Online users: {onlineUsers.length} • Total users: {totalUsers.length}</div>
+    </div>
+    <div class="w-full items-center justify-center flex-grow overflow-y-auto m-20">
+        <div class="max-w-4xl w-full flex">
+            <div class="w-1/4 bg-white overflow-y-auto" style="max-height: calc(100vh - 140px);">
+                <div class="text-xl font-semibold">Online Users</div>
+                <div class="h-full overflow-y-auto">
+                    <div class="flex flex-col gap-y-1 mt-2">
+                        {#each [...new Set(onlineUsers.map(user => user.username))] as user}
+                            <div>{user}</div>
+                        {/each}
                     </div>
-                {/each}
-            {/if}
+                </div>
+            </div>
+            <div class="w-3/4 bg-blue-100 rounded-lg overflow-y-auto" style="max-height: calc(100vh - 140px);">
+                <div class="px-4 py-2">
+                    <div class="flex flex-col gap-y-2">
+                        {#if messages.length === 0}
+                            <div class="p-2 text-gray-500">No messages yet</div>
+                        {:else}
+                            {#each messages as message, index}
+                                <div class="flex flex-col items-start p-2 rounded-lg" class:border-b={index + 1 !== messages.length}>
+                                    <div class="flex justify-between w-full">
+                                        <div class="text-sm font-semibold">{message.client}</div>
+                                        <div class="text-xs text-blue-500">{moment(message.timestamp).format('HH:mm DD-MM-YYYY')}</div>
+                                    </div>
+                                    <div class="bg-green-200 rounded-lg px-3 py-2 max-w-md">{message.message}</div>
+                                    {#if index + 1 !== messages.length}
+                                        <div class="w-full border-b border-gray-300 mt-2"></div>
+                                    {/if}
+                                </div>
+                            {/each}
+                        {/if}
+                    </div>
+                </div>
+            </div>
         </div>
-    {/if}
+    </div>
+    <div class="fixed bottom-0 w-full bg-white border-t border-gray-300 px-4 py-2 shadow-md z-10">
+        <form on:submit|preventDefault={sendMessage} class="flex items-center">
+            <input id="chat-message" name="message" type="text" class="flex-grow px-4 py-2 focus:outline-none" placeholder="Type your message" />
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">Send</button>
+        </form>
+    </div>
 </div>
-
