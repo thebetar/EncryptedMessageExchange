@@ -37,20 +37,20 @@ app.get('/test', (req, res) => {
 });
 
 app.get('/messages', async (req, res) => {
-	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
-		res.status(401).send('Unauthorized');
-		return;
-	}
+	// if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+	// 	res.status(401).send('Unauthorized');
+	// 	return;
+	// }
 
 	const messages = JSON.parse((await redisClient.get('messages')) || '[]');
 	res.status(200).send(messages);
 });
 
 app.get('/users', async (req, res) => {
-	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
-		res.status(401).send('Unauthorized');
-		return;
-	}
+	// if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+	// 	res.status(401).send('Unauthorized');
+	// 	return;
+	// }
 
 	const clients = JSON.parse((await redisClient.get('clients')) || '[]');
 	res.status(200).send(clients);
@@ -156,7 +156,6 @@ io.on('connection', async socket => {
 
 		// Get clients from redis
 		let clients = JSON.parse((await redisClient.get('clients')) || '[]');
-		let messages = JSON.parse((await redisClient.get('messages')) || '[]');
 
 		// Check if id exists
 		if (clients.some(client => client.id === id)) {
@@ -168,9 +167,14 @@ io.on('connection', async socket => {
 			const oldClient = clients.find(client => client.username === username);
 			clients = clients.filter(client => client.username !== username);
 
+			const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+
 			for (let message of messages.filter(message => message.client === oldClient.id)) {
 				message.client = id;
 			}
+
+			// Save updated messages to redis
+			await redisClient.set('messages', JSON.stringify(messages));
 		}
 
 		// Add new client
@@ -200,6 +204,10 @@ io.on('connection', async socket => {
 		for (let [id, socket] of sockets) {
 			// Get public key of client
 			const publicKey = clients.find(client => client.id === id)?.publicKey;
+
+			if (!publicKey) {
+				continue;
+			}
 
 			// The only way to deep copy an object in javascript (needed for encryption)
 			const dataCopy = JSON.parse(JSON.stringify(data));
