@@ -82,7 +82,6 @@ def new_user(id, username, public_key):
 
     # Get clients from Redis
     clients = json.loads(redis_client.get('clients') or '[]')
-    messages = json.loads(redis_client.get('messages') or '[]')
 
     # If client id exists remove them
     if any(client['id'] == id for client in clients):
@@ -93,16 +92,21 @@ def new_user(id, username, public_key):
         old_client = next(client for client in clients if client['username'] == username)
         clients = [client for client in clients if client['username'] != username]
         
+        # Get messages to rewrite client ID
+        messages = json.loads(redis_client.get('messages') or '[]')
+        
         # Replace old id with new id in messages
         for message in [message for message in messages if message['client'] == old_client['id']]:
             message['client'] = id
+            
+        # Save messages to Redis
+        redis_client.set('messages', json.dumps(messages))
     
     # Add user
     clients.append(new_client)
     
     # Save clients to Redis
     redis_client.set('clients', json.dumps(clients))
-    redis_client.set('messages', json.dumps(messages))
 
     # Send update to all clients
     send_update()
@@ -124,7 +128,6 @@ def send_update():
         public_key = next((client['public_key'] for client in clients if client['id'] == socket_id), None)
         
         if not public_key:
-            print(f'No public key found for client {socket_id}')
             continue
         
         # Deep copy of the data
