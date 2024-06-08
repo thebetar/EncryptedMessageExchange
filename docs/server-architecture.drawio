@@ -1,0 +1,40 @@
+<mxfile host="app.diagrams.net" modified="2024-06-08T12:49:45.908Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" etag="RVJ6VsXT5dG1ucFLDLiP" version="24.5.1" type="device">
+  <diagram name="Page-1" id="TEXVu94cwziqkr1DdQZu">
+    <mxGraphModel dx="1434" dy="940" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="G7jIq5FbGdVKGR-_2A0--1" target="G7jIq5FbGdVKGR-_2A0--2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--1" value="Browser" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="120" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="G7jIq5FbGdVKGR-_2A0--2" target="G7jIq5FbGdVKGR-_2A0--3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="G7jIq5FbGdVKGR-_2A0--2" target="G7jIq5FbGdVKGR-_2A0--4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--2" value="Load balancer" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="280" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="G7jIq5FbGdVKGR-_2A0--3" target="G7jIq5FbGdVKGR-_2A0--5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--3" value="Server (express.js)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="440" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="G7jIq5FbGdVKGR-_2A0--4" target="G7jIq5FbGdVKGR-_2A0--5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--4" value="Server (Flask)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="440" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="G7jIq5FbGdVKGR-_2A0--5" value="Database (redis)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="600" width="160" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
