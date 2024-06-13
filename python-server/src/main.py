@@ -17,11 +17,11 @@ keys = generate_keys()
 
 redis_client = getRedisClient()
 
-HOST_NAME  = os.getenv('HOST_NAME', secrets.token_hex(20))
+SERVER_NAME  = os.getenv('SERVER_NAME', secrets.token_hex(20))
 
 @app.get("/server-name")
 def get_server_name():
-    return HOST_NAME
+    return SERVER_NAME
 
 @app.get('/test')
 def test():
@@ -32,7 +32,7 @@ def get_users():
     if 'api_key' not in request.headers or request.headers['api_key'] != API_KEY:
         return jsonify({'error': 'Invalid API key'}), 401
     
-    clients = json.loads(redis_client.get('clients') or '[]')
+    clients = json.loads(redis_client['client'].get('clients') or '[]')
     
     return jsonify(clients)
 
@@ -41,7 +41,7 @@ def get_messages():
     if 'api_key' not in request.headers or request.headers['api_key'] != API_KEY:
         return jsonify({'error': 'Invalid API key'}), 401
     
-    messages = json.loads(redis_client.get('messages') or '[]')
+    messages = json.loads(redis_client['client'].get('messages') or '[]')
     
     return jsonify(messages)
 
@@ -81,7 +81,7 @@ def new_user(id, username, public_key):
     }
 
     # Get clients from Redis
-    clients = json.loads(redis_client.get('clients') or '[]')
+    clients = json.loads(redis_client['client'].get('clients') or '[]')
 
     # If client id exists remove them
     if any(client['id'] == id for client in clients):
@@ -93,52 +93,23 @@ def new_user(id, username, public_key):
         clients = [client for client in clients if client['username'] != username]
         
         # Get messages to rewrite client ID
-        messages = json.loads(redis_client.get('messages') or '[]')
+        messages = json.loads(redis_client['client'].get('messages') or '[]')
         
         # Replace old id with new id in messages
         for message in [message for message in messages if message['client'] == old_client['id']]:
             message['client'] = id
             
         # Save messages to Redis
-        redis_client.set('messages', json.dumps(messages))
+        redis_client['client'].set('messages', json.dumps(messages))
     
     # Add user
     clients.append(new_client)
     
     # Save clients to Redis
-    redis_client.set('clients', json.dumps(clients))
-
-    # Send update to all clients
-    send_update()
+    redis_client['client'].set('clients', json.dumps(clients))
     
-# Send update to all clients
-def send_update():
-    # Get all client data and messages
-    clients = json.loads(redis_client.get('clients') or '[]')
-    messages = json.loads(redis_client.get('messages') or '[]')
-
-    # Send data to clients
-    data = {
-        'clients': clients,
-        'messages': messages
-    }
-
-    for socket_id in sockets:
-        
-        public_key = next((client['public_key'] for client in clients if client['id'] == socket_id), None)
-        
-        if not public_key:
-            continue
-        
-        # Deep copy of the data
-        data_copy = json.loads(json.dumps(data))
-        
-        for message in data_copy['messages']:
-            encrypted_message = encrypt_data(message['message'], public_key)
-            
-            message['message'] = encrypted_message
-        
-        emit('socket-update', data_copy, to=socket_id)
+    # Send update
+    redis_client['pubsub'].publish('database-update', 'new-message')
 
 # On connection check if api key was deliverd as ath
 @socketio.on('connect')
@@ -163,7 +134,7 @@ def handle_connect(auth):
 @socketio.on('chat-message')
 def on_message(data):
     # Get all messages
-    messages = json.loads(redis_client.get('messages') or '[]')
+    messages = json.loads(redis_client['client'].get('messages') or '[]')
     
     # Decrypt data
     decrypted_data = decrypt_data(data, keys['private_key'])
@@ -176,15 +147,15 @@ def on_message(data):
     })
     
     # Save messages to Redis
-    redis_client.set('messages', json.dumps(messages))
+    redis_client['client'].set('messages', json.dumps(messages))
     
     # Send update
-    send_update()
+    redis_client['pubsub'].publish('database-update', 'new-message')
     
 @socketio.on('disconnect')
 def handle_disconnect():
     # Get all clients
-    clients = json.loads(redis_client.get('clients') or '[]')
+    clients = json.loads(redis_client['client'].get('clients') or '[]')
     
     # Set disconnecting client to offline
     for client in clients:
@@ -192,13 +163,13 @@ def handle_disconnect():
             client['online'] = False
     
     # Save clients to Redis
-    redis_client.set('clients', json.dumps(clients))
+    redis_client['client'].set('clients', json.dumps(clients))
     
     # Remove from sockets
     sockets.remove(request.sid)
     
     # Send update
-    send_update()
+    redis_client['pubsub'].publish('database-update', 'new-message')
     
     print('A user disconnected! 😢')
     
@@ -207,13 +178,48 @@ RESET = True
 
 # Reset chat history
 if RESET:
-    redis_client = getRedisClient()
-    
-    redis_client.set('messages', json.dumps([]))
-    redis_client.set('clients', json.dumps([]))
+    redis_client['client'].set('messages', json.dumps([]))
+    redis_client['client'].set('clients', json.dumps([]))
 
 if __name__ == '__main__':
     
     socketio.run(app)
-    app.run(port=PORT)
-    
+    app.run(port=PORT, debug=True)
+
+pubsub = redis_client['pubsub'].pubsub()
+pubsub.subscribe('database-update')
+
+def background_thread():
+    for message in pubsub.listen():
+        if message['type'] == 'message':
+            # Get all client data and messages
+            clients = json.loads(redis_client['client'].get('clients') or '[]')
+            messages = json.loads(redis_client['client'].get('messages') or '[]')
+
+            # Send data to clients
+            data = {
+                'clients': clients,
+                'messages': messages
+            }
+
+            for socket_id in sockets:
+                public_key = next((client['public_key'] for client in clients if client['id'] == socket_id), None)
+                
+                if not public_key:
+                    continue
+                
+                # Deep copy of the data
+                data_copy = json.loads(json.dumps(data))
+                
+                for message in data_copy['messages']:
+                    encrypted_message = encrypt_data(message['message'], public_key)
+                    
+                    message['message'] = encrypted_message
+                    
+                for client in data_copy['clients']:
+                    if client.get('public_key'):
+                        del client['public_key']
+                
+                socketio.emit('socket-update', data_copy, to=socket_id)
+            
+socketio.start_background_task(background_thread)

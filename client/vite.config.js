@@ -12,5 +12,8 @@ export default defineConfig({
 			'/socket.io': 'http://localhost:3000/socket.io',
 		},
 	},
+	build: {
+		sourcemap: true,
+	},
 	plugins: [sveltekit()],
 });

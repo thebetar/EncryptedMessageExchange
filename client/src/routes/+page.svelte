@@ -14,34 +14,38 @@
     let totalUsers = [];
 
     onMount(async () => {
-        // Get server name
-        const response = await fetch('/api/server-name');
-        const data = await response.text();
-        serverName = data;
-
-        // If api key not set, show login modal
-        if (localStorage.getItem('apiKey') === null) {
-            loginModal = true;
+        try {
+            // Get server name
+            const response = await fetch('/api/server-name');
+            const data = await response.text();
+            serverName = data;
+    
+            // If api key not set, show login modal
+            if (localStorage.getItem('apiKey') === null) {
+                loginModal = true;
+                loading = false;
+                return;
+            } else {
+                loginModal = false;
+            }
+    
+            // If username not set, generate new one
+            if (localStorage.getItem('username') === null) {
+                localStorage.setItem('username', generateUsername());
+            }
+    
+            socketClient = new SocketClient();
+            socketClient.store.subscribe(value => {
+                messages = value.messages;
+                onlineUsers = value.onlineUsers;
+                totalUsers = value.totalUsers;
+            });
+    
+            await socketClient.init();
             loading = false;
-            return;
-        } else {
-            loginModal = false;
+        } catch(error) {
+            alert('Server unreachable. Please try again later.')
         }
-
-        // If username not set, generate new one
-        if (localStorage.getItem('username') === null) {
-            localStorage.setItem('username', generateUsername());
-        }
-
-        socketClient = new SocketClient();
-        socketClient.store.subscribe(value => {
-            messages = value.messages;
-            onlineUsers = value.onlineUsers;
-            totalUsers = value.totalUsers;
-        });
-
-        await socketClient.init();
-        loading = false;
     });
 
     function generateUsername() {
@@ -53,15 +57,20 @@
     }
 </script>
 
-<div class="flex flex-col h-screen overflow-y-hidden">
+<div class="flex flex-col h-screen max-h-screen overflow-y-hidden">
     {#if loading}
         <div class="p-4">Loading...</div>
     {:else if loginModal}
         <LoginModal />
     {:else}
-        <div class="md:p-4 p-2 bg-[#07335e] text-white flex justify-between items-center">
+        <div class="md:p-4 p-2 bg-[#07335e] text-white flex md:flex-row flex-col gap-2 justify-between items-center md:text-left text-center">
             <div class="md:text-xl text-sm font-semibold">Encrypted exchange service</div>
-            <div class="flex gap-1 text-sm md:flex-row flex-col">
+
+            <div  class="md:text-xl text-sm md:font-semibold">
+                Servername: "{serverName}"
+            </div>
+
+            <div class="flex gap-1 text-sm">
                 <div>Online users: {onlineUsers.length}</div><div>Total users: {totalUsers.length}</div>
             </div>
         </div>

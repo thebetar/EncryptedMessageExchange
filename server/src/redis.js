@@ -12,9 +12,17 @@ async function getRedisClient() {
 			process.exit(1);
 		}
 
-		return await createClient({
-			url: REDIS_URL,
-		}).connect();
+		return {
+			client: createClient({
+				url: REDIS_URL,
+			}),
+			pub: createClient({
+				url: REDIS_URL,
+			}),
+			sub: createClient({
+				url: REDIS_URL,
+			}),
+		};
 	} catch (err) {
 		console.error('Error connecting to Redis:', REDIS_URL);
 		console.error('Retrying in 5 seconds...');

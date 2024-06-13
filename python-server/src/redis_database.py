@@ -10,7 +10,10 @@ def getRedisClient(tries = 0):
             print(f'Error connection to redis: {REDIS_URL}')
             return None
         
-        return redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
+        return {
+            'client': redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True),
+            'pubsub': redis.StrictRedis(host=REDIS_HOST, port=6379, decode_responses=True),
+        }
     except Exception as e:
         print(f'Error connecting to Redis: {e}')
         

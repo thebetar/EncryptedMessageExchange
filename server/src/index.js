@@ -26,10 +26,10 @@ app.use(express.json());
 
 const server = createServer(app);
 
-const HOST_NAME = process.env.HOST_NAME || crypto.randomBytes(20).toString('hex');
+const SERVER_NAME = process.env.SERVER_NAME || crypto.randomBytes(20).toString('hex');
 
 app.get('/server-name', (req, res) => {
-	res.status(200).send(HOST_NAME);
+	res.status(200).send(SERVER_NAME);
 });
 
 app.get('/test', (req, res) => {
@@ -37,22 +37,22 @@ app.get('/test', (req, res) => {
 });
 
 app.get('/messages', async (req, res) => {
-	// if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
-	// 	res.status(401).send('Unauthorized');
-	// 	return;
-	// }
+	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+		res.status(401).send('Unauthorized');
+		return;
+	}
 
-	const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+	const messages = JSON.parse((await redisClient.client.get('messages')) || '[]');
 	res.status(200).send(messages);
 });
 
 app.get('/users', async (req, res) => {
-	// if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
-	// 	res.status(401).send('Unauthorized');
-	// 	return;
-	// }
+	if (!req.headers['api-key'] || req.headers['api-key'] !== API_KEY) {
+		res.status(401).send('Unauthorized');
+		return;
+	}
 
-	const clients = JSON.parse((await redisClient.get('clients')) || '[]');
+	const clients = JSON.parse((await redisClient.client.get('clients')) || '[]');
 	res.status(200).send(clients);
 });
 
@@ -104,7 +104,7 @@ io.on('connection', async socket => {
 	// Handle chat messages
 	socket.on('chat-message', async data => {
 		// Get all messages
-		const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+		const messages = JSON.parse((await redisClient.client.get('messages')) || '[]');
 
 		// Decrypt message
 		const message = decryptData(data, keys.privateKey);
@@ -117,16 +117,14 @@ io.on('connection', async socket => {
 		});
 
 		// Save messages to redis
-		await redisClient.set('messages', JSON.stringify(messages));
-
-		// Send update to all users
-		sendUpdate(socket.id);
+		await redisClient.client.set('messages', JSON.stringify(messages));
+		redisClient.pub.publish('database-update', 'new message');
 	});
 
 	// Handle disconnect
 	socket.on('disconnect', async () => {
 		// Get clients from redis
-		const clientsStr = (await redisClient.get('clients')) || '[]';
+		const clientsStr = (await redisClient.client.get('clients')) || '[]';
 		const clients = JSON.parse(clientsStr);
 
 		// Set user offline
@@ -137,10 +135,8 @@ io.on('connection', async socket => {
 		}
 
 		// Save clients to redis
-		redisClient.set('clients', JSON.stringify(clients));
-
-		// Send update to all users
-		sendUpdate(socket.id);
+		await redisClient.client.set('clients', JSON.stringify(clients));
+		redisClient.pub.publish('database-update', 'new message');
 
 		console.log('A user disconnected! 😢');
 	});
@@ -150,12 +146,12 @@ io.on('connection', async socket => {
 		const newClient = {
 			id,
 			username,
-			publicKey,
+			public_key: publicKey,
 			online: true,
 		};
 
 		// Get clients from redis
-		let clients = JSON.parse((await redisClient.get('clients')) || '[]');
+		let clients = JSON.parse((await redisClient.client.get('clients')) || '[]');
 
 		// Check if id exists
 		if (clients.some(client => client.id === id)) {
@@ -167,31 +163,29 @@ io.on('connection', async socket => {
 			const oldClient = clients.find(client => client.username === username);
 			clients = clients.filter(client => client.username !== username);
 
-			const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+			const messages = JSON.parse((await redisClient.client.get('messages')) || '[]');
 
 			for (let message of messages.filter(message => message.client === oldClient.id)) {
 				message.client = id;
 			}
 
 			// Save updated messages to redis
-			await redisClient.set('messages', JSON.stringify(messages));
+			await redisClient.client.set('messages', JSON.stringify(messages));
 		}
 
 		// Add new client
 		clients.push(newClient);
 
 		// Save clients to redis
-		await redisClient.set('clients', JSON.stringify(Array.from(clients)));
-
-		// Send update to all clients
-		sendUpdate(id);
+		await redisClient.client.set('clients', JSON.stringify(Array.from(clients)));
+		redisClient.pub.publish('database-update', 'new message');
 	}
 
 	// Send update to all clients
 	async function sendUpdate() {
 		// Get all client data and messages
-		const clients = JSON.parse((await redisClient.get('clients')) || '[]');
-		const messages = JSON.parse((await redisClient.get('messages')) || '[]');
+		const clients = JSON.parse((await redisClient.client.get('clients')) || '[]');
+		const messages = JSON.parse((await redisClient.client.get('messages')) || '[]');
 
 		// Send data to client
 		const data = {
@@ -203,7 +197,7 @@ io.on('connection', async socket => {
 
 		for (let [id, socket] of sockets) {
 			// Get public key of client
-			const publicKey = clients.find(client => client.id === id)?.publicKey;
+			const publicKey = clients.find(client => client.id === id)?.public_key;
 
 			if (!publicKey) {
 				continue;
@@ -217,10 +211,19 @@ io.on('connection', async socket => {
 				dataCopy.messages[i].message = await encryptData(dataCopy.messages[i].message, publicKey);
 			}
 
+			// Remove public_key from clients
+			for (let i = 0; i < dataCopy.clients.length; i++) {
+				if (dataCopy.clients[i].public_key) {
+					delete dataCopy.clients[i].public_key;
+				}
+			}
+
 			// Send data to client
 			socket.emit('socket-update', dataCopy);
 		}
 	}
+
+	redisClient.sub.subscribe('database-update', sendUpdate);
 });
 
 // Start server
@@ -239,10 +242,14 @@ server.listen(port, async () => {
 	// Connect to redis
 	redisClient = await getRedisClient();
 
+	await redisClient.client.connect();
+	await redisClient.pub.connect();
+	await redisClient.sub.connect();
+
 	// Reset chat history
 	if (RESET) {
-		await redisClient.set('messages', JSON.stringify([]));
-		await redisClient.set('clients', JSON.stringify([]));
+		await redisClient.client.set('messages', JSON.stringify([]));
+		await redisClient.client.set('clients', JSON.stringify([]));
 	}
 
 	console.log('Redis connected! 💾');

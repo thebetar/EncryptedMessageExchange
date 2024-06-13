@@ -15,6 +15,7 @@ services:
         environment:
             - PORT=3000
             - REDIS_HOST=redis-container
+            - SERVER_NAME=express-1
     express-2:
         build: server
         deploy:
@@ -30,6 +31,7 @@ services:
         environment:
             - PORT=3000
             - REDIS_HOST=redis-container
+            - SERVER_NAME=express-2
     flask-1:
         build: python-server
         deploy:
@@ -45,6 +47,7 @@ services:
         environment:
             - PORT=3000
             - REDIS_HOST=redis-container
+            - SERVER_NAME=flask-1
     flask-2:
         build: python-server
         deploy:
@@ -60,6 +63,7 @@ services:
         environment:
             - PORT=3000
             - REDIS_HOST=redis-container
+            - SERVER_NAME=flask-2
     nginx:
         container_name: nginx-container
         build: proxy
